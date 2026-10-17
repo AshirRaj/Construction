@@ -17,14 +17,12 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration (allow requests with credentials from frontend)
+// Origin allowlist for secure CORS
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
-  'http://localhost:3000',
+  process.env.CLIENT_URL,
   'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000'
-];
+  'http://localhost:5174'
+].filter(Boolean);
 
 app.use(
   cors({
@@ -32,23 +30,11 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Check allowed origins list
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // Automatically allow Vercel preview and production deployments (*.vercel.app)
-      if (origin.endsWith('.vercel.app')) {
-        return callback(null, true);
-      }
-
-      // Permissive in development
-      if (process.env.NODE_ENV !== 'production') {
-        return callback(null, true);
-      }
-
-      // In production, allow all origins by reflecting the origin to support cross-site credentials
-      return callback(null, true);
+      return callback(new Error(`Not allowed by CORS: Origin '${origin}' is not authorized`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
